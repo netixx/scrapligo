@@ -91,6 +91,7 @@ func (c *Channel) read() {
 				c.l.Criticalf("error writing to channel log, ignoring. error: %s", err)
 			}
 		}
+		b = nil
 
 		time.Sleep(c.ReadDelay)
 	}
