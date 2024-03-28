@@ -86,6 +86,7 @@ func (d *Driver) read() {
 				}
 
 				b = nil
+				rb = nil
 			}
 		}
 
