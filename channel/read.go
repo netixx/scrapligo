@@ -78,7 +78,6 @@ func (c *Channel) read() {
 		// not 100% this is required, but has existed in scrapli/scrapligo for a long time and am
 		// afraid to remove it!
 		b = bytes.ReplaceAll(b, []byte("\r"), []byte(""))
-
 		if bytes.Contains(b, []byte("\x1b")) {
 			b = util.StripANSI(b)
 		}
