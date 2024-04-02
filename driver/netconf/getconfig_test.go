@@ -3,6 +3,9 @@ package netconf_test
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -70,6 +73,33 @@ func TestGetConfig(t *testing.T) {
 	for testName, testCase := range cases {
 		f := testGetConfig(testName, testCase)
 		t.Run(testName, f)
+	}
+}
+
+func TestGetConfigLeak(t *testing.T) {
+	cases := map[string]*util.PayloadTestCase{
+		"getconfig-simple": {
+			Description: "simple getconfig test",
+			PayloadFile: "getconfig-simple.txt",
+		},
+	}
+
+	for testName, testCase := range cases {
+		runtime.GC()
+		heapBaseFile, _ := os.Create(fmt.Sprintf("%s-base.heap", testName))
+		pprof.WriteHeapProfile(heapBaseFile)
+		heapBaseFile.Close()
+		before := &runtime.MemStats{}
+		runtime.ReadMemStats(before)
+
+		f := testGetConfig(testName, testCase)
+		t.Run(testName, f)
+
+		after := &runtime.MemStats{}
+		runtime.ReadMemStats(after)
+		heapFile, _ := os.Create(fmt.Sprintf("%s.heap", testName))
+		pprof.WriteHeapProfile(heapFile)
+		heapFile.Close()
 	}
 }
 
