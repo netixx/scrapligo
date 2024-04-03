@@ -208,9 +208,9 @@ func (t *System) Close() error {
 
 	t.fd = nil
 
-	// if err := t.c.Process.Kill(); err != nil {
-	// 	return err
-	// }
+	if err := t.c.Process.Kill(); err != nil {
+		return err
+	}
 	return err
 }
 

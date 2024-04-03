@@ -3,6 +3,7 @@ package transport_test
 import (
 	"flag"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,8 +63,11 @@ func dummyDevice(t *testing.T)  *DummyServer {
 	handler := func  (s ssh.Session) {
 		t.Logf("Handle request")
 		time.Sleep(100 * time.Millisecond)
-		io.WriteString(s, "Banner\n\n")
-		io.WriteString(s, `<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">\n <capabilities>\n  <capability>urn:ietf:params:netconf:base:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:confirmed-commit:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:interleave:1.0</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-infra-systemmib-cfg?module=Cisco-IOS-XR-infra-systemmib-cfg&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-autorp-datatypes?module=Cisco-IOS-XR-ipv4-autorp-datatypes&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-perf-meas-cfg?module=Cisco-IOS-XR-perf-mea`)
+		// io.WriteString(s, "Banner\n\n")
+		// send more that 8_192 without a linefeed
+		io.WriteString(s, strings.Repeat("z", 8_192))
+		io.WriteString(s, strings.Repeat("a", 10))
+		// io.WriteString(s, `<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">\n <capabilities>\n  <capability>urn:ietf:params:netconf:base:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:confirmed-commit:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:interleave:1.0</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-infra-systemmib-cfg?module=Cisco-IOS-XR-infra-systemmib-cfg&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-autorp-datatypes?module=Cisco-IOS-XR-ipv4-autorp-datatypes&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-perf-meas-cfg?module=Cisco-IOS-XR-perf-mea`)
 		close(ds.block)
 		t.Logf("send finished")
 		time.Sleep(60 * time.Second)

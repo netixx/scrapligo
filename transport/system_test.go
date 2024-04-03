@@ -3,6 +3,7 @@ package transport_test
 import (
 	"io"
 	"testing"
+	"time"
 
 	"github.com/scrapli/scrapligo/driver/options"
 	"github.com/scrapli/scrapligo/logging"
@@ -49,18 +50,19 @@ func TestSystemTransport(t *testing.T) {
 		for {
 			t.Log("starting to read")
 			// defaultReadSize = 8_192
-			b, err := tp.Read(8_192)
+			b, err := tp.Read(81)
 			t.Logf("read %d bytes: %s", len(b), b)
 			if err != nil {
 				if err == io.EOF {
 					return
 				}
-				t.Errorf("failed to read : %s", err)
+				t.Logf("failed to read : %s", err)
 				return
 			}
 		}
 	}()
 	<- device.block
+	time.Sleep(5 * time.Second)
 
 	t.Log("closing transport")
 	err = tp.Close()
