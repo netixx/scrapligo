@@ -208,7 +208,8 @@ func (t *System) Close() error {
 
 	t.fd = nil
 
-	if t.c != nil && t.c.Process != nil && t.c.ProcessState != nil && !t.c.ProcessState.Exited() {
+	// t.c.ProcessState is always nil in our case
+	if t.c != nil && t.c.Process != nil {
 		if err := t.c.Process.Kill(); err != nil {
 			return err
 		}
