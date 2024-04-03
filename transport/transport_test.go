@@ -2,6 +2,11 @@ package transport_test
 
 import (
 	"flag"
+	"io"
+	"testing"
+	"time"
+
+	"github.com/gliderlabs/ssh"
 
 	"github.com/scrapli/scrapligo/util"
 )
@@ -28,3 +33,42 @@ var (
 		"comma sep list of transport(s) to target",
 	)
 )
+
+func dummyDevice(t *testing.T) *ssh.Server {
+	// base on following logs
+	// server that mimics the locking process (every host will lock)
+	// read: b"Warning: Permanently added '########' (ECDSA) to the list of known hosts.\n"
+	// read: b'######            |\n*------------------------------------------------------------------------------*\n'
+	// read: b"#####\n"
+	// read: b'######.\n'
+	// read: b'#####'
+	// write: REDACTED
+	// write: '\n'
+	// read: b'\n'
+	// read: b'\n\ndevice banner\n\n\n'
+	// read: b'Password: \n'
+	// write: REDACTED
+	// write: '\n'
+	// read: b'\n'
+	// read: b'<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">\n <capabilities>\n  <capability>urn:ietf:params:netconf:base:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:confirmed-commit:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:interleave:1.0</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-infra-systemmib-cfg?module=Cisco-IOS-XR-infra-systemmib-cfg&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-autorp-datatypes?module=Cisco-IOS-XR-ipv4-autorp-datatypes&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-perf-meas-cfg?module=Cisco-IOS-XR-perf-mea'
+	// ound start of server capabilities, authentication successful
+
+	handler := func  (s ssh.Session) {
+		t.Logf("Handle request")
+		time.Sleep(100 * time.Millisecond)
+		io.WriteString(s, "Banner\n\n")
+		io.WriteString(s, `<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">\n <capabilities>\n  <capability>urn:ietf:params:netconf:base:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:confirmed-commit:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:interleave:1.0</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-infra-systemmib-cfg?module=Cisco-IOS-XR-infra-systemmib-cfg&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-autorp-datatypes?module=Cisco-IOS-XR-ipv4-autorp-datatypes&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-perf-meas-cfg?module=Cisco-IOS-XR-perf-mea`)
+		time.Sleep(60 * time.Second)
+	}
+
+	s := &ssh.Server{
+    Addr:             ":2222",
+		SubsystemHandlers: map[string]ssh.SubsystemHandler{
+			"netconf": handler,
+		},
+	}
+	go func() {
+		t.Log(s.ListenAndServe())
+	}()
+	return s
+}

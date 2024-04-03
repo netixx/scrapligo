@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/creack/pty"
 	"github.com/scrapli/scrapligo/util"
@@ -36,6 +37,8 @@ type System struct {
 	OpenBin   string
 	OpenArgs  []string
 	fd        *os.File
+	ReadTimeout time.Duration
+	c *exec.Cmd
 }
 
 func (t *System) buildOpenArgs(a *Args) {
@@ -113,6 +116,8 @@ func (t *System) buildOpenArgs(a *Args) {
 			t.ExtraArgs...,
 		)
 	}
+
+	t.ReadTimeout = a.TimeoutSocket
 }
 
 func (t *System) open(a *Args) error {
@@ -122,12 +127,12 @@ func (t *System) open(a *Args) error {
 
 	a.l.Debugf("opening system transport with bin '%s' and args '%s'", t.OpenBin, t.OpenArgs)
 
-	c := exec.Command(t.OpenBin, t.OpenArgs...) //nolint:gosec
+	t.c = exec.Command(t.OpenBin, t.OpenArgs...) //nolint:gosec
 
 	var err error
 
 	t.fd, err = pty.StartWithSize(
-		c,
+		t.c,
 		&pty.Winsize{
 			Rows: uint16(a.TermHeight),
 			Cols: uint16(a.TermWidth),
@@ -151,11 +156,11 @@ func (t *System) openNetconf(a *Args) error {
 
 	a.l.Debugf("opening system transport with bin '%s' and args '%s'", t.OpenBin, t.OpenArgs)
 
-	c := exec.Command(t.OpenBin, t.OpenArgs...) //nolint:gosec
+	t.c = exec.Command(t.OpenBin, t.OpenArgs...) //nolint:gosec
 
 	var err error
 
-	t.fd, err = pty.Start(c)
+	t.fd, err = pty.Start(t.c)
 	if err != nil {
 		a.l.Criticalf("encountered error spawning pty, error: %s", err)
 
@@ -203,6 +208,9 @@ func (t *System) Close() error {
 
 	t.fd = nil
 
+	// if err := t.c.Process.Kill(); err != nil {
+	// 	return err
+	// }
 	return err
 }
 
@@ -214,6 +222,14 @@ func (t *System) IsAlive() bool {
 // Read reads n bytes from the transport.
 func (t *System) Read(n int) ([]byte, error) {
 	b := make([]byte, n)
+
+	// if err := syscall.SetNonblock(int(t.fd.Fd()), true); err != nil {
+	// 	return nil, err
+	// }
+	
+	// if err := t.fd.SetReadDeadline(time.Now().Add(t.ReadTimeout)); err != nil {
+	// 	return nil, err
+	// }
 
 	n, err := t.fd.Read(b)
 	if err != nil {
