@@ -12,8 +12,11 @@ import (
 
 func TestSystemTransport(t *testing.T) {
 	device := dummyDevice(t)
-	defer device.Close()
-	sshArgs, err := transport.NewSSHArgs()
+	defer device.s.Close()
+	sshArgs, err := transport.NewSSHArgs(
+		options.WithAuthNoStrictKey(),
+		options.WithSSHKnownHostsFile("/dev/null"),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,16 +43,14 @@ func TestSystemTransport(t *testing.T) {
 	}
 
 	doneChan := make(chan struct{})
-	readChan := make(chan struct{})
 	go func() {
 		defer t.Log("read finished")
 		defer close(doneChan)
-		close(readChan)
 		for {
 			t.Log("starting to read")
 			// defaultReadSize = 8_192
 			b, err := tp.Read(8_192)
-			t.Logf("read %d bytes", len(b))
+			t.Logf("read %d bytes: %s", len(b), b)
 			if err != nil {
 				if err == io.EOF {
 					return
@@ -59,7 +60,7 @@ func TestSystemTransport(t *testing.T) {
 			}
 		}
 	}()
-	<- readChan
+	<- device.block
 
 	t.Log("closing transport")
 	err = tp.Close()

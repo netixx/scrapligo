@@ -34,7 +34,11 @@ var (
 	)
 )
 
-func dummyDevice(t *testing.T) *ssh.Server {
+type DummyServer struct {
+	s *ssh.Server
+	block chan(struct{})
+}
+func dummyDevice(t *testing.T)  *DummyServer {
 	// base on following logs
 	// server that mimics the locking process (every host will lock)
 	// read: b"Warning: Permanently added '########' (ECDSA) to the list of known hosts.\n"
@@ -52,23 +56,28 @@ func dummyDevice(t *testing.T) *ssh.Server {
 	// read: b'\n'
 	// read: b'<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">\n <capabilities>\n  <capability>urn:ietf:params:netconf:base:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:confirmed-commit:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:interleave:1.0</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-infra-systemmib-cfg?module=Cisco-IOS-XR-infra-systemmib-cfg&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-autorp-datatypes?module=Cisco-IOS-XR-ipv4-autorp-datatypes&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-perf-meas-cfg?module=Cisco-IOS-XR-perf-mea'
 	// ound start of server capabilities, authentication successful
-
+	ds := &DummyServer{
+		block: make(chan struct{}),
+	}
 	handler := func  (s ssh.Session) {
 		t.Logf("Handle request")
 		time.Sleep(100 * time.Millisecond)
 		io.WriteString(s, "Banner\n\n")
 		io.WriteString(s, `<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">\n <capabilities>\n  <capability>urn:ietf:params:netconf:base:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:rollback-on-error:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:confirmed-commit:1.1</capability>\n  <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>\n  <capability>urn:ietf:params:netconf:capability:interleave:1.0</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-infra-systemmib-cfg?module=Cisco-IOS-XR-infra-systemmib-cfg&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-autorp-datatypes?module=Cisco-IOS-XR-ipv4-autorp-datatypes&amp;revision=2015-11-09</capability>\n  <capability>http://cisco.com/ns/yang/Cisco-IOS-XR-perf-meas-cfg?module=Cisco-IOS-XR-perf-mea`)
+		close(ds.block)
+		t.Logf("send finished")
 		time.Sleep(60 * time.Second)
+		t.Logf("Request finished")
 	}
 
-	s := &ssh.Server{
+	ds.s = &ssh.Server{
     Addr:             ":2222",
 		SubsystemHandlers: map[string]ssh.SubsystemHandler{
 			"netconf": handler,
 		},
 	}
 	go func() {
-		t.Log(s.ListenAndServe())
+		t.Log(ds.s.ListenAndServe())
 	}()
-	return s
+	return ds
 }
