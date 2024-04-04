@@ -32,13 +32,13 @@ func NewSystemTransport(a *SSHArgs) (*System, error) {
 
 // System is the default (/bin/ssh wrapper) transport object.
 type System struct {
-	SSHArgs   *SSHArgs
-	ExtraArgs []string
-	OpenBin   string
-	OpenArgs  []string
-	fd        *os.File
+	SSHArgs     *SSHArgs
+	ExtraArgs   []string
+	OpenBin     string
+	OpenArgs    []string
+	fd          *os.File
 	ReadTimeout time.Duration
-	c *exec.Cmd
+	c           *exec.Cmd
 }
 
 func (t *System) buildOpenArgs(a *Args) {
@@ -229,7 +229,7 @@ func (t *System) Read(n int) ([]byte, error) {
 	// if err := syscall.SetNonblock(int(t.fd.Fd()), true); err != nil {
 	// 	return nil, err
 	// }
-	
+
 	// if err := t.fd.SetReadDeadline(time.Now().Add(t.ReadTimeout)); err != nil {
 	// 	return nil, err
 	// }
