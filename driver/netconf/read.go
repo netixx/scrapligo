@@ -32,7 +32,8 @@ func (d *Driver) read() {
 	case V1Dot1:
 		promptDelim = patterns.v1Dot1Delim
 	}
-
+	rpcWithPrompt := append([]byte("</rpc>"), promptDelim...)
+	queryFound := false
 	for {
 		select {
 		case <-d.done:
@@ -49,20 +50,18 @@ func (d *Driver) read() {
 		}
 
 		b = append(b, rb...)
-
-		if bytes.Contains(b, promptDelim) { //nolint: nestif
-			if bytes.Contains(b, []byte("</rpc>")) {
-				// we read past the input, yay this is good, but we don't care that much, we just
-				// need to reset the buffer... *but* because there is a small read delay in channel
-				// we can sometimes already have read past the prompt/end of the original rpc. This
-				// isn't an issue in "normal" SSH operations where we don't send return until we
-				// read the input off the session, but obviously can break things here, so we'll
-				// use regex to split on the delim and then get only the bits after the delim and
-				// update b to be just that part.
-				_, b, _ = bytes.Cut(b, promptDelim)
-				continue
-			}
-
+		if bytes.Contains(b, rpcWithPrompt) {
+			// we read past the input, yay this is good, but we don't care that much, we just
+			// need to reset the buffer... *but* because there is a small read delay in channel
+			// we can sometimes already have read past the prompt/end of the original rpc. This
+			// isn't an issue in "normal" SSH operations where we don't send return until we
+			// read the input off the session, but obviously can break things here, so we'll
+			// use regex to split on the delim and then get only the bits after the delim and
+			// update b to be just that part.
+			_, b, _ = bytes.Cut(b, rpcWithPrompt)
+			queryFound = true
+		}
+		if queryFound && bytes.Contains(b, promptDelim) {
 			var messageID int
 
 			var subID int

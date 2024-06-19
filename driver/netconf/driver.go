@@ -3,6 +3,7 @@ package netconf
 import (
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"regexp"
 	"sync"
 
@@ -83,7 +84,7 @@ func getNetconfPatterns() *netconfPatterns {
 	netconfPatternsInstanceOnce.Do(func() {
 		netconfPatternsInstance = &netconfPatterns{
 			v1Dot0Delim:        append([]byte(v1Dot0Delim), '\n'),
-			v1Dot1Delim:        append([]byte(v1Dot1Delim), '\n'),
+			v1Dot1Delim:        []byte(fmt.Sprintf("\n%s\n", v1Dot1Delim)),
 			hello:              regexp.MustCompile(helloPattern),
 			capability:         regexp.MustCompile(capabilityPattern),
 			messageID:          regexp.MustCompile(messageIDPattern),
