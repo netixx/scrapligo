@@ -3,6 +3,7 @@ package netconf
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -154,14 +155,16 @@ func (d *Driver) determineVersion() error {
 		}
 	}
 
+
 	ncPatterns := getNetconfPatterns()
 
 	switch d.SelectedVersion {
 	case V1Dot0:
-		d.Channel.PromptPattern = ncPatterns.v1Dot0Delim
+		d.Channel.PromptPattern = regexp.MustCompile(string(ncPatterns.v1Dot0Delim))
 	case V1Dot1:
-		d.Channel.PromptPattern = ncPatterns.v1Dot1Delim
+		d.Channel.PromptPattern = regexp.MustCompile(fmt.Sprintf(`(?m)^%s$`, ncPatterns.v1Dot1Delim))
 	}
+
 
 	return nil
 }

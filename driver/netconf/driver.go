@@ -30,7 +30,7 @@ const (
 
 	// V1Dot1 is a constant for the NETCONF 1.1 version string.
 	V1Dot1      = "1.1"
-	v1Dot1Delim = `(?m)^##$`
+	v1Dot1Delim = `##`
 	v1Dot1Cap   = "urn:ietf:params:netconf:base:1.1"
 	v1Dot1Caps  = "" +
 		"<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
@@ -63,8 +63,8 @@ const (
 )
 
 type netconfPatterns struct {
-	v1Dot0Delim        *regexp.Regexp
-	v1Dot1Delim        *regexp.Regexp
+	v1Dot0Delim        []byte
+	v1Dot1Delim        []byte
 	hello              *regexp.Regexp
 	capability         *regexp.Regexp
 	messageID          *regexp.Regexp
@@ -82,8 +82,8 @@ var (
 func getNetconfPatterns() *netconfPatterns {
 	netconfPatternsInstanceOnce.Do(func() {
 		netconfPatternsInstance = &netconfPatterns{
-			v1Dot0Delim:        regexp.MustCompile(v1Dot0Delim),
-			v1Dot1Delim:        regexp.MustCompile(v1Dot1Delim),
+			v1Dot0Delim:        append([]byte(v1Dot0Delim), '\n'),
+			v1Dot1Delim:        append([]byte(v1Dot1Delim), '\n'),
 			hello:              regexp.MustCompile(helloPattern),
 			capability:         regexp.MustCompile(capabilityPattern),
 			messageID:          regexp.MustCompile(messageIDPattern),
@@ -168,9 +168,7 @@ func NewDriver(
 		d.Logger = l
 	}
 
-	ncPatterns := getNetconfPatterns()
-
-	d.Channel.PromptPattern = ncPatterns.v1Dot0Delim
+	d.Channel.PromptPattern = regexp.MustCompile(string(v1Dot0Delim))
 
 	return d, nil
 }
